@@ -52,17 +52,51 @@ inline double imag (const complex& x)
     return x.imag();
 }
 
+inline double real (const complex& x) {
+    return x.real();
+}
+
 inline complex& __doapl (complex* ths, const complex& r)    // 第一个参数将会被改动，第二个参数将不会被改动
 {
     // 自由取得 friend 的 private 成员
     ths->re += r.re;
     ths->im += r.im;
+    // return by reference，好处是传递者无需知道接收者是以reference形式接收，返回的是一个object
     return *ths;
 }
 
+/*
+    所有的成员函数一定带着一个隐藏的参数this，下面代码等价于:
+
+    inline complex& complex::operator += (this, const complex& r) {
+        return __doapl(this, r);
+    }
+
+    但是在实际定义时，不能显示写出。this位置未必都在最左侧，具体要看编译器
+    this是一个指针，以下面调用为例，this表示c2，r即是c1
+    谁调用这个函数，this就指向谁
+
+    complex c1(2, 1);
+    complex c2(5);
+    c2 += c1
+
+*/
 inline complex& complex::operator += (const complex& r)
 {
     return __doapl(this, r);
+}
+
+// operator overloading 操作符重载、非成员函数
+inline complex operator + (const complex& x, const complex& y) {
+    return complex(real(x) + real(y), imag(x) + imag(y));
+}
+
+inline complex operator + (const complex& x, double y) {
+    return complex(real(x) + y, imag(x));
+}
+
+inline complex operator + (double x, const complex& y) {
+    return complex(x + real(y), imag(y));
 }
 
 #endif
