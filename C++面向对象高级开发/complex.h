@@ -1,8 +1,9 @@
-// guard 防卫式声明
+// guard 防卫式声明，作用：防止由于同一个头文件被包含多次，而导致了重复定义
 #ifndef __COMPLEX__
 #define __COMPLEX__
 
 #include <cmath>
+#include <iostream>
 
 // forward declarations 前置声明
 class ostream;
@@ -14,17 +15,17 @@ complex& __doapl (complex* ths, const complex& r);
 class complex
 {
 public:
-    /* 
+    /*
         constructor (ctor 构造函数) 函数名称一定与类名称相同
-        构造函数可以有很多个，这种做法即 overloading(重载) 
+        构造函数可以有很多个，这种做法即 overloading(重载)
     */
     complex (double r = 0, double i = 0)    // default argument (默认实参)
         : re(r), im(i)  // initialization list (初值列 初始列) 相比于在函数体内赋值，效率更高
     {}
     complex& operator += (const complex&);
-    /* 
+    /*
         函数若在 class body 内定义完成，便成为 inline 候选人，inline 函数非常快
-        一般比较简单的函数，编译器有能力会将其变成 inline 函数，取决于编译器本身 
+        一般比较简单的函数，编译器有能力会将其变成 inline 函数，取决于编译器本身
     */
     double real() const { return re; }  // 这里 const 的意思是不改变数据中的内容
     double imag() const { return im; }
@@ -52,11 +53,13 @@ inline double imag (const complex& x)
     return x.imag();
 }
 
-inline double real (const complex& x) {
+inline double real (const complex& x) 
+{
     return x.real();
 }
 
-inline complex& __doapl (complex* ths, const complex& r)    // 第一个参数将会被改动，第二个参数将不会被改动
+// 第一个参数将会被改动，第二个参数加了const将不会被改动
+inline complex& __doapl (complex* ths, const complex& r)
 {
     // 自由取得 friend 的 private 成员
     ths->re += r.re;
@@ -87,16 +90,64 @@ inline complex& complex::operator += (const complex& r)
 }
 
 // operator overloading 操作符重载、非成员函数
-inline complex operator + (const complex& x, const complex& y) {
+inline complex operator + (const complex& x, const complex& y)
+{
+    // 绝不可return by reference，因为返回的必定是个local object，换言之，临时对象不能return by reference
     return complex(real(x) + real(y), imag(x) + imag(y));
 }
 
-inline complex operator + (const complex& x, double y) {
+inline complex operator + (const complex& x, double y)
+{
     return complex(real(x) + y, imag(x));
 }
 
-inline complex operator + (double x, const complex& y) {
+inline complex operator + (double x, const complex& y)
+{
     return complex(x + real(y), imag(y));
+}
+
+inline complex operator + (const complex& x)
+{
+    return x;
+}
+
+inline complex operator - (const complex& x)
+{
+    return complex(-real(x), -imag(x));
+}
+
+inline bool operator == (const complex& x, const complex& y)
+{
+    return real(x) == real(y) && imag(x) == imag(y);
+}
+
+inline bool operator == (const complex& x, double y)
+{
+    return real(x) == y && imag(x) == 0;
+}
+
+inline bool operator == (double x, const complex& y)
+{
+    return x == real(y) && imag(y) == 0;
+}
+// 共轭复数
+inline complex conj (const complex& x)
+{
+    return complex(real(x), -imag(x));
+}
+
+/*
+    1. 传入的参数os不加const，因为os相当于count，向cout中写入任何信息时都在改变cout的状态
+    调用示例：
+    complex c1(2, 1);
+    cout << conj(c1);
+    
+    2. 这里函数返回值不能是void，而是返回引用，因为可能存在这种连续输出的情况，cout<<c1的结果类型为ostream，
+    且需要能继续接收conj(c1)的信息
+    cout << c1 << conj(c1);
+*/
+ostream& operator << (ostream& os, const complex& x) {
+    return os << '(' << real(x) << ',' << imag(x) << ')';
 }
 
 #endif
