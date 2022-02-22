@@ -1,5 +1,7 @@
-#ifndef __ MYSTRING__
+#ifndef __MYSTRING__
 #define __MYSTRING__
+
+#include <iostream>
 
 /*
     class with pointer members必须有copy ctor和copy op=
@@ -66,6 +68,12 @@ inline String& String::operator = (const String& str)
 inline String::~String()
 {
     delete[] m_data;
+}
+
+ostream& operator << (ostream& os, const String& str) 
+{
+    os << str.get_c_str();
+    return os;
 }
 
 #endif
