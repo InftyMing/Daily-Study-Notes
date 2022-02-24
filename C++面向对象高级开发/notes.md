@@ -2,6 +2,8 @@
 
 
 
+
+
 [TOC]
 
 ### C++书籍推荐
@@ -55,7 +57,10 @@ A& A::getInstance()
 }
 ```
 
+
+
 ### 所谓stack(栈) 所谓heap(堆)
+
 ---
 Stack，是存在于某作用域（scope）的一块内存空间（memory space）。
 例如当你调用函数，函数本身即会形成一个stack用来放置它所接收的参数，以及返回的地址。
@@ -66,18 +71,65 @@ Heap，或谓system heap，是指由操作系统提供的一块全局（global�
 
 1. c1所占用的空间来自stack，c1便是所谓的stack object，其生命在作用域（scope）结束之际结束。这个作用域内的object，又称为auto object，因为它会被自动清空
 2. c2便是所谓的static object，其生命在作用域（scope）结束之后仍然存在，直到整个程序结束
-3. 
+3. c3便是所谓的global object（全局对象），其生命在程序结束之后才结束，也可以把它视为一种static object，其作用域是整个程序
 4. complex(3)是个临时对象，所占用的空间是以new自heap动态分配得到，并由p指向
+5. p所指的便是heap object，其生命在它被delete时结束，如果不加delete，则会出现内存泄露（memory leak），因为当作用域结束，p所指向的heap object仍然存在，但指针p的生命却结束了，作用域之外再也看不到p（也就没机会delete p）
 
 
 ```
 class Complex { ... };
 ...
-Com
+Complex c3(1, 2);
 
 {
     Complex c1(1, 2);
     static Complex c2(1, 2);
     Complex* p = new Complex(3);
+    ...
+    delete p;
 }
 ```
+
+#### new：先分配memory，再调用ctor（构造函数）
+
+```C++
+Complex* pc = new Complex(1, 2);
+
+// 编译器转化为：
+
+// 1.分配内存，其内部调用malloc(n)，即先分配内存
+void mem = operator new(sizeof(Complex));
+
+// 2.转型
+pc = static_cast<Complex*>(mem);
+
+// 3.构造函数，相当于 Complex::Complex(this,1,2); 这里的this相当于pc
+pc->Complex::Complex(1, 2);
+```
+
+#### delete：先调用dtor（析构函数），再释放内存
+
+```
+Complex* pc = new String("Hello");
+...
+delete ps;
+
+// 编译器转化为
+
+// 1.析构函数，析构的是类中的指针类型的私有变量
+String::~String(ps);
+
+// 2. 释放内存，其内部调用free(ps)，释放的ps本身占用的内存
+operator delete(ps);
+```
+
+
+
+![image-20220224173747794](../pic/image-20220224173747794.png)
+
+
+
+
+
+
+
