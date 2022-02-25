@@ -109,7 +109,7 @@ pc->Complex::Complex(1, 2);
 
 #### delete：先调用dtor（析构函数），再释放内存
 
-```
+```C++
 Complex* pc = new String("Hello");
 ...
 delete ps;
@@ -123,9 +123,134 @@ String::~String(ps);
 operator delete(ps);
 ```
 
+#### new操作时内存块剖析
 
+红色的是上下cookie（每个cookie 4个byte），作用是记录整块分配的大小，方便之后回收。pad相当于补位，分配的空间不为16的倍数时才进行分配。对于复数，左侧为调试模式下分配的空间，右侧为非调试模式。
 
 ![image-20220224173747794](../pic/image-20220224173747794.png)
+
+![image-20220225155558777](../pic/image-20220225155558777.png)
+
+array new 一定要搭配array delete，理由参下：
+
+按照delete[] p这种方式写的时候，编译器才知道要释放的是一个数组，才回去调用3次析构函数。内存泄露的是未delete的数组元素所占的内存空间。
+
+![image-20220225155943020](../pic/image-20220225155943020.png)
+
+
+
+### 补充：static
+
+---
+
+非静态成员函数会默认传入this指针，this pointer在成员函数中省略，编译器会自动补全。
+
+![infoflow 2022-02-25 16-37-28](../pic/infoflow 2022-02-25 16-37-28.png)
+
+静态成员函数在内存中只有一份，与对象无关，脱离于对象之外。
+
+静态函数没有this pointer，因此不能够像一般的成员函数那样去处理类中的私有变量，静态函数要处理数据的话只能处理静态数据。
+
+比如：
+
+```C++
+// 银行账户
+class Account {
+public:
+	static double m_rate;	// 利率，这里是对变量的声明
+	static void set_rate(const double& x) { m_rate = x };
+};
+// 如果是静态数据，一定要在class外做下面这样的操作，这种操作严格来讲叫定义，要不要给初值都可以
+double Account::m_rate = 8.0;
+
+int main() {
+    /*
+    	调用static函数的方式有两种：
+    	1.通过object调用
+    	2.通过class name调用
+    */
+    Account::set_rate(5.0);		// 2
+    
+    Acount a;
+    a.set_rate(7.0);			// 1
+}
+```
+
+
+
+#### 单例模式：把ctors放在private区
+
+```C++
+class A {
+public:
+    static A& getInstance(return a;);
+    setup() {...}
+private:
+    A();
+    A(const A& rhs);
+    static A a;
+    ...
+};
+
+// 外界调用时，只能通过 A::getInstance.setup(); 这种方式来调用
+
+// 更好的写法参下，即如果没有任何人使用，单例不会存在
+class A {
+public:
+    static A& getInstance();
+    setup() {...}
+private:
+    A();
+    A(const A& rhs);
+    ...
+};
+
+A& A::getInstance() {
+    static A a;
+    return a;
+}
+```
+
+
+
+### 补充：cout
+
+----
+
+```C++
+class ostream : virtual public ios
+{
+public:
+	ostream& operator << (char c);
+    ostream& operator << (unsigned char c) { return (*this) << (char)c; }
+    ostream& operator << (signed char c) { return (*this) << (char)c; }
+    ostream& operator << (const char *s);
+    ostream& operator << (const unsigned char *s) { return (*this) << (const char*)s; }
+    ostream& operator << (const signed char *s) { return (*this) << (const char*)s; }
+    ostream& operator << (const void *p);
+    ostream& operator << (int n);
+    ostream& operator << (unsigned int n);
+    ostream& operator << (long n);
+    ostream& operator << (unsigned long n);
+}
+
+class _IO_ostream_withassign
+    : public ostream {
+...      
+};
+
+extern _IO_ostream_withassign cout;
+```
+
+
+
+
+
+
+
+
+
+
 
 
 

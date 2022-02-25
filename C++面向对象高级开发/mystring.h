@@ -51,10 +51,10 @@ inline String::String(const String& str)
     strcpy(m_data, str.m_data);
 }
 
-// copy assignment operator 拷贝赋值函数
+// copy assignment operator 拷贝赋值函数，这里的 const String& str 中的 & 代表取引用
 inline String& String::operator = (const String& str)
 {
-    // 检测自我赋值(self assignment)
+    // 检测自我赋值(self assignment)，这里的 &str 中的 & 代表取地址，得到的是指针
     if (this == &str) {
         return *this;
     }
