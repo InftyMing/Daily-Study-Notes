@@ -244,9 +244,53 @@ extern _IO_ostream_withassign cout;
 
 
 
+### 补充：class template，类模板
+
+---
+
+```C++
+template<typename T>
+class complex
+{
+public:
+	complex (T r = 0, T i = 0) : re(r), im(i) {}
+    complex& operator += (const complex&);
+    T real() const { return re; }
+    T imag() const { return im; }
+private:
+    T re, im;
+    
+    friend complex& __doapl(complex*, const complex&);
+}
+
+// 调用
+{
+    complex<double> c1(2.5, 1.5);
+    complex<int> c2(2, 6);
+    ...
+}
+```
+
+所以从调用的角度看，有一种观点认为模板可能会造成代码膨胀，但这种膨胀是必要的，并非是负面的，而是切实业务需要。
 
 
 
+### 补充：function template，函数模板
+
+----
+
+```C++
+class stone
+{
+public:
+    stone(int w, int h, int we) : _w
+}
+
+stone r1(2,3), r2(3,3), r3;
+r3 = min(r1, r2);
+
+
+```
 
 
 
