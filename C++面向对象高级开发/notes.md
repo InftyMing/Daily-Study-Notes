@@ -139,7 +139,13 @@ array new 一定要搭配array delete，理由参下：
 
 
 
-### 补充：static
+### 补充
+
+----
+
+
+
+#### 补充：static
 
 ---
 
@@ -178,7 +184,7 @@ int main() {
 
 
 
-#### 单例模式：把ctors放在private区
+##### 单例模式：把ctors放在private区
 
 ```C++
 class A {
@@ -213,7 +219,7 @@ A& A::getInstance() {
 
 
 
-### 补充：cout
+#### 补充：cout
 
 ----
 
@@ -244,7 +250,7 @@ extern _IO_ostream_withassign cout;
 
 
 
-### 补充：class template，类模板
+#### 补充：class template，类模板
 
 ---
 
@@ -275,7 +281,7 @@ private:
 
 
 
-### 补充：function template，函数模板
+#### 补充：function template，函数模板
 
 ----
 
@@ -283,14 +289,453 @@ private:
 class stone
 {
 public:
-    stone(int w, int h, int we) : _w
+    stone(int w, int h, int we) : _w(w), _h(h), _weight(we){}
+    bool operator< (const stone& rhs) const { return _weight < rhs._weight; }
+
+private:
+    int _w, _h, _weight;
+};
+
+template <class T>
+inline const T& min(const T& a, const T& b) {
+    return b < a ? b : a;
 }
 
+// 编译器会对 function template 进行引数推导（argument deduction）
+// 引数推导的结果，T 为 stone，于是调用 stone::operator<
 stone r1(2,3), r2(3,3), r3;
 r3 = min(r1, r2);
-
-
 ```
+
+
+
+#### 补充：namespace
+
+----
+
+防止当前文件中的代码与其他部分代码中的函数、方法等重名。
+
+```C++
+namespace std
+{
+	...
+}
+
+// 1. using directive 使用命令，放开命名空间。直接使用std下的所有方法
+# include <iostream>
+using namespace std;
+int main() {
+    cin << ...;
+    cout << ...;
+}
+
+// 2. using declaration 使用声明，
+#include <iostream>
+using std::cout;
+int main() {
+    std::cin << ...;
+    cout << ...;
+    return 0;
+}
+
+// 3.不直接声明使用哪个命名空间或其方法
+#include <iostream>
+int main() {
+    std::cin << ...;
+    std::cout << ...;
+    return 0;
+}
+```
+
+
+
+#### 更多细节
+
+```C++
+// 可以用于某种转换函数
+operator type() const;
+
+// 前面加explicit关键字的构造函数
+explicit complex(...) : initialization list {}
+
+pointer-like object
+function-like object
+namespace
+// 模板特化
+template specialization 
+
+Standard Library
+
+// since C++ 11
+variadic template
+move ctor
+Rvalue reference
+auto
+lambda
+range-base for loop
+unordered containers
+```
+
+
+
+### Object Oriented Programming, Object Oriented Design——OOP,OOD
+
+---
+
+面向对象编程、面向对象设计
+
+1. Inheritance（继承）
+2. Composition（复合）
+3. Delegation（委托）
+
+
+
+#### Composition 复合，表示has-a
+
+```C++
+template <class T, class Sequence = deque<T>>
+class queue {
+	...
+protected:
+    Sequence c;	// 底层容器
+public:
+    // 以下完全利用c的操作函数完成
+    bool empty() const { return c.empty(); }
+    size_type size() const { return c.size(); }
+    reference front() { return c.front(); }
+    reference back() { return c.back(); }
+    // deque是两端可进出，queue是末端进前端出（先进先出）
+    void push(const value_type& x) { c.push_back(x); }
+    void pop() { c.pop_front(); }
+};
+
+// 上述代码相当于：
+// queue -> deque（queue中有deque的东西）
+template <class T>
+class queue {
+	...
+protected:
+    deque<T> c;	// 底层容器
+public:
+    // 以下完全利用c的操作函数完成
+    bool empty() const { return c.empty(); }
+    size_type size() const { return c.size(); }
+    reference front() { return c.front(); }
+    reference back() { return c.back(); }
+    // deque是两端可进出，queue是末端进前端出（先进先出）
+    void push(const value_type& x) { c.push_back(x); }
+    void pop() { c.pop_front(); }
+};
+```
+
+上述类queue的代码也是一种设计模式，叫 Adapter（改造、适配、配接），适配器模式
+
+下面从内存角度看composition：
+
+```C++
+// [queue] sizeof: 40
+template <class T>
+class queue {
+protected:
+	deque<T> c;
+	...
+};
+
+// [deque] sizeof: 16 * 2 + 4 + 4
+template <class T>
+class deque {
+protected:
+	Itr<T> start;
+	Itr<T> finish;
+	T** map;
+	unsigned int map_size;
+};
+
+// [Itr] sizeof: 4 * 4
+template <class T>
+struct Itr {
+	T* cur;
+	T* first;
+	T* last;
+	T** node;
+...
+};
+```
+
+
+
+##### Composition（复合）关系下的构造和析构
+
+Container -> Component
+
+1. 构造由内而外：
+
+    Container 的构造函数首先调用 Component 的 default 构造函数，然后才执行自己。
+
+    ```C++
+    Container::Container(...) : Component() {...};
+    ```
+
+2. 析构由外而内：
+
+    Container 的析构函数首先执行自己，然后才调用 Component 的析构函数。
+
+    ```C++
+    Container::~Container(...) { ... ~Component() };
+    ```
+
+要注意区分，上述代码中的Component()是编译器默认调用的，如果不符合个人习惯，就要自己去写。
+
+<img src="../pic/infoflow 2022-03-02 17-51-28.png" alt="infoflow 2022-03-02 17-51-28" style="zoom:50%;" />
+
+
+
+#### Delegation（委托）Composition by reference
+
+---
+
+通过引用的复合（学术界中，即使用指针在传，也讲by reference）
+
+Handle / Body (pImpl)，也叫编译防火墙。Handle是对外的接口，Body是真正的实现。这种方法的好处是，不管实现怎么变，都不会影响对外的接口。
+
+下图中是发生共享的行为，发生共享的前提是一个对象想要改变内容时，不能影响别人。a想要修改的话，提供一份副本，b和c去共享内容。
+
+<img src="../pic/infoflow 2022-03-02 18-11-51.png" alt="infoflow 2022-03-02 18-11-51" style="zoom:33%;" />
+
+##### 设计模式：Handle / Body (pImpl)
+
+```C++
+// Handle / Body (pImpl)，这种写法非常有名，pointer to implement
+
+// file String.cpp
+// Handle
+// 该类下只放对外的接口，具体的方法不在这里写出来，真正的实现在StringRep类中做，当String需要动作的时候都调用StringRep中的方法进行处理
+class StringRep;
+class String {
+public:
+    String();
+    String(const char* s);
+    String(const String& s);
+    String &operator = (const String& s);
+    ~String();
+	...
+private:
+    StringRep* rep;	// pimpl
+};
+
+// file String.cpp
+// Body
+#include "String.hpp"
+namespace {
+class StringRep {
+    friend class String;
+    StringRep(const char* s);
+    ~StringRep();
+    int count;
+    char* rep;
+};
+}
+
+String::String() { ... }
+...
+```
+
+
+
+#### Inheritance（继承），表示 is-a
+
+----
+
+三种继承方式：public、private、protected。最重要的是public。父类的数据子类（派生类）被完全继承下来。最有价值的地方在于和虚函数搭配。
+
+```C++
+struct _List_node_base
+{
+	_List_node_base* _M_next;
+	_List_node_base* _M_prev;
+};
+
+template<typename _Tp>
+struct _List_node : public _List_node_base
+{
+	_Tp _M_data;
+};
+```
+
+<img src="../pic/infoflow 2022-03-03 15-17-20.png" alt="infoflow 2022-03-03 15-17-20" style="zoom:40%;" />
+
+从内存的角度看：子类中有父类的成分。
+
+1. 构造由内而外
+
+    Derived的构造函数首先调用Base的default构造函数，然后才执行自己
+
+    ```C++
+    Derived::Derived(...) : Base() {...}
+    ```
+
+2. 析构由外而内
+
+    Derived的析构函数首先执行自己，然后才调用Base的析构函数
+
+    ```C++
+    Derived::~Derived(...) { ... ~Base() };
+    ```
+
+父类的析构函数必须是虚函数，否则会出现undefined behavior
+
+<img src="../pic/infoflow 2022-03-02 18-24-56.png" alt="infoflow 2022-03-02 18-24-56" style="zoom:50%;" />
+
+
+
+##### Inheritance (继承) with virtual functions (虚函数)
+
+Non-virtual 函数：你不希望派生类（derived class）重新定义（override，覆写）它
+
+Virtual 函数：你希望派生类重新定义它，并且对它已有默认定义
+
+pure virtual 函数（纯虚函数）：你希望派生类一定要重新定义它，你对它没有默认定义
+
+【==TODO==：纯虚函数是否可以有默认定义，只不过课程中没提到，可以后面查一下】
+
+```C++
+class Shape {
+public:
+    // pure virtual
+	virtual void draw() const = 0;
+	
+    // impure virtual
+    virtual void error(const std::string& msg);
+	
+    // non-virtual
+    int objectID() const;
+	...
+};
+
+class Rectangle : public Shape {...};
+class Ellipse : public Shape {...};
+```
+
+函数的继承继承的是调用权，子类可以调用父类的函数。
+
+##### 设计模式：Template Method
+
+23种设计模式之一，在应用程序框架中设计方法，留下暂时无法实现的方法，使之成为虚函数，让子类去实现这个虚函数。比如，MFC。这是虚函数最经典、最重要的用途。
+
+下图main函数中`myDoc.OnFileOpen();` 完整代码为`CDocument::OnFileOpen(&myDoc);`，调用者myDoc即为OnFileOpen的this指针，然后通过this指针调用子类中的serialize()方法。
+
+<img src="../pic/infoflow 2022-03-03 15-41-30.png" alt="infoflow 2022-03-03 15-41-30" style="zoom:50%;" />
+
+上图过程的代码实现：
+
+```C++
+#inlcude <iostream>
+using namespace std;
+
+class CDocument
+{
+public:
+    void OnFileOpen()
+    {
+        // 这是个算法，每个cout输出代表一个实际动作
+        cout << "dialog..." << endl;
+        cout << "check file status..." << endl;
+        cout << "open file..." << endl;
+        Serialize();
+        cout << "close file..." << endl;
+        cout << "update all views..." << endl;
+    }
+    
+    virtual void Serialize() { };
+};
+
+class CMyDoc : public CDocument
+{
+public:
+	virtual void Serialize()
+    {
+        // 只有应用程序本身才知道如何读取自己的文件（格式）
+        cout << "CMyDoc::Serialize()" << endl;
+    }
+};
+
+int main()
+{
+    CMyDoc myDoc;	// 假设对应[File/Open]
+    myDoc.OnFileOpen();
+}
+```
+
+
+
+#### 继承 + 复合关系下的构造和析构
+
+---
+
+【==TODO==】写代码观察两种模式下，谁先执行，谁后执行
+
+<img src="../../../../Library/Application Support/typora-user-images/image-20220303155435018.png" alt="image-20220303155435018" style="zoom:50%;" />
+
+
+
+#### Delegation(委托) + Inheritance(继承)
+
+---
+
+功能最强大的组合。
+
+<img src="../pic/infoflow 2022-03-03 16-28-54.png" alt="infoflow 2022-03-03 16-28-54" style="zoom:33%;" />
+
+##### 设计模式：Observer
+
+```C++
+class Observer
+{
+public:
+    virtual void update(Subject* sub, int value) = 0;
+};
+
+class Subject
+{
+	int m_value;
+	vector<Observer*> m_views;
+public:
+	void attach(Observer* obs) {
+		m_views.push_back(obs);
+	}
+    void set_val(int value) {
+        m_value = value;
+        notify();
+    }
+    void notify() {
+        for (int i = 0; i < m_views.size(); ++i) {
+            m_views[i]->update(this, m_value);
+        }
+    }
+};
+```
+
+
+
+##### 设计模式：Composite
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
